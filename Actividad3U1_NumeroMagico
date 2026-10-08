@@ -1,0 +1,36 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Numero_magico
+{
+    internal class Program
+    {
+        static void Main(string[] args)
+        {
+            Console.WriteLine("BIENVENIDO AL NUMERO SECRETO, ADIVINA EL NUMERO");
+
+            int Num = int.Parse(Console.ReadLine());
+
+            int Ncom = new Random().Next(1, 101);
+
+            while (Num != Ncom)
+            {
+                if (Num < Ncom)
+                {
+                    Console.WriteLine("El número es mayor");
+                }
+                else
+                {
+                    Console.WriteLine("El número es menor");
+                }
+
+                Num = int.Parse(Console.ReadLine());
+            }
+
+            Console.WriteLine("¡Felicidades! Has adivinado el número.");
+        }
+    }
+}  
