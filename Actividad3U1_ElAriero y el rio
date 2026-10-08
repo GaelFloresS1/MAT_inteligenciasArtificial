@@ -1,0 +1,276 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace El_ariero_y_el_rio
+{
+    class Estado
+    {
+        public int G;
+        public int P;
+        public int C;
+        public int L;
+        public Estado(int G, int P, int C, int L)
+        {
+            this.G = G;
+            this.P = P;
+            this.C = C;
+            this.L = L;
+        }
+
+    }
+
+    class Nodo
+    {
+        public Estado Estado;
+        public Nodo Padre;
+        public string Movimiento;
+        public Nodo(Estado estado, Nodo padre, string movimiento)
+        {
+            Estado = estado;
+            Padre = padre;
+            Movimiento = movimiento;
+        }
+    }
+    internal class Program
+    {
+        static bool EsSeguro(Estado estado)
+        {
+            if (estado.P == estado.C && estado.G != estado.P)
+            {
+                return false;
+            }
+            if (estado.C == estado.L && estado.G != estado.C)
+            {
+                return false;
+            }
+            return true;
+        }
+
+
+        static bool SonIguales(Estado a, Estado b)
+        {
+            return a.G == b.G &&
+                   a.P == b.P &&
+                   a.C == b.C &&
+                   a.L == b.L;
+        }
+
+        static List<Nodo> GenerarSucesores(Nodo actual)
+        {
+            List<Nodo> sucesores = new List<Nodo>();
+
+            Estado estado = actual.Estado;
+
+            int nuevoG = estado.G == 0 ? 1 : 0;
+
+            Estado nuevoEstado = new Estado(
+                nuevoG,
+                estado.P,
+                estado.C,
+                estado.L
+            );
+
+            if (EsSeguro(nuevoEstado))
+            {
+                sucesores.Add(
+                    new Nodo(nuevoEstado, actual, "El granjero cruza solo")
+                );
+            }
+
+            if (estado.P == estado.G)
+            {
+                nuevoEstado = new Estado(
+                    nuevoG,
+                    nuevoG,
+                    estado.C,
+                    estado.L
+                );
+
+                if (EsSeguro(nuevoEstado))
+                {
+                    sucesores.Add(
+                        new Nodo(nuevoEstado, actual, "El granjero lleva al puma")
+                    );
+                }
+            }
+
+            if (estado.C == estado.G)
+            {
+                nuevoEstado = new Estado(
+                    nuevoG,
+                    estado.P,
+                    nuevoG,
+                    estado.L
+                );
+
+                if (EsSeguro(nuevoEstado))
+                {
+                    sucesores.Add(
+                        new Nodo(nuevoEstado, actual, "El granjero lleva a la cabra")
+                    );
+                }
+            }
+
+            if (estado.L == estado.G)
+            {
+                nuevoEstado = new Estado(
+                    nuevoG,
+                    estado.P,
+                    estado.C,
+                    nuevoG
+                );
+                if (EsSeguro(nuevoEstado))
+                {
+                    sucesores.Add(
+                        new Nodo(nuevoEstado, actual, "El granjero lleva la lechuga")
+                    );
+                }
+            }
+            return sucesores;
+        }
+
+        static Nodo BusquedaEnProfundidad(Estado inicial, Estado deseado)
+        {
+            List<Nodo> open = new List<Nodo>();
+            List<Estado> closed = new List<Estado>();
+
+            Nodo nodoInicial = new Nodo(
+                inicial,
+                null,
+                "Estado inicial"
+            );
+
+            open.Add(nodoInicial);
+            while (open.Count > 0)
+            {
+                Nodo actual = open[0];
+                open.RemoveAt(0);
+
+                if (SonIguales(actual.Estado, deseado))
+                {
+                    return actual;
+                }
+
+                closed.Add(actual.Estado);
+
+                List<Nodo> sucesores = GenerarSucesores(actual);
+
+                foreach (Nodo sucesor in sucesores)
+                {
+                    bool estaEnOpen = false;
+                    bool estaEnClosed = false;
+
+                    foreach (Nodo nodoOpen in open)
+                    {
+                        if (SonIguales(nodoOpen.Estado, sucesor.Estado))
+                        {
+                            estaEnOpen = true;
+                            break;
+                        }
+                    }
+                    foreach (Estado estadoClosed in closed)
+                    {
+                        if (SonIguales(estadoClosed, sucesor.Estado))
+                        {
+                            estaEnClosed = true;
+                            break;
+                        }
+                    }
+
+                    if (!estaEnOpen && !estaEnClosed)
+                    {
+                        open.Insert(0, sucesor);
+                    }
+                }
+            }
+            return null;
+        }
+
+        static List<Nodo> ReconstruirCamino(Nodo solucion)
+        {
+            List<Nodo> camino = new List<Nodo>();
+
+            Nodo actual = solucion;
+
+            while (actual != null)
+            {
+                camino.Add(actual);
+                actual = actual.Padre;
+            }
+
+            camino.Reverse();
+
+            return camino;
+        }
+
+        static void MostrarEstado(Estado estado)
+        {
+            Console.WriteLine(
+                "[" +
+                estado.G + "," +
+                estado.P + "," +
+                estado.C + "," +
+                estado.L +
+                "]"
+            );
+        }
+        static void Main(string[] args)
+        {
+            Estado inicial = new Estado(0, 0, 0, 0);
+            Estado deseado = new Estado(1, 1, 1, 1);
+            
+
+            Console.WriteLine("Bienvenido al problema del granjero; " +
+                "resuelve el como puede cruzar con sus cosas sin que haya un accidente");
+            Console.WriteLine("El granjero tiene un puma, una cabra y una lechuga, " +
+                "y debe cruzar el río con ellos. El problema es que no puede dejar al puma solo con la cabra, " +
+                "ni a la cabra sola con la lechuga, porque se los comerán.");
+            Console.WriteLine("El granjero puede llevar solo un objeto a la vez, " +
+                "y debe asegurarse de que no haya accidentes mientras cruza el río.");
+
+            Console.WriteLine("Solo puede hacer lo siguiente (por ahora): ");
+
+            Console.WriteLine("1. Llevar la cabra al otro lado del río.");
+            Console.WriteLine("2. Llevar el puma al otro lado del río.");
+            Console.WriteLine("3. Llevar la lechuga al otro lado del río.");
+            Console.WriteLine("4. Regresar solo al otro lado del río.");
+
+            Console.WriteLine("¿que hara el granjero? (presiona enter para empezar la resolucion del problema con BDP): ");
+
+            Console.WriteLine();
+            Console.WriteLine("Iniciando busqueda en profundidad...");
+            Console.WriteLine();
+
+            Nodo solucion = BusquedaEnProfundidad(inicial, deseado);
+
+            if (solucion != null)
+            {
+                Console.WriteLine("¡Solucion encontrada!");
+                Console.WriteLine();
+
+                List<Nodo> camino = ReconstruirCamino(solucion);
+
+                for (int i = 0; i < camino.Count; i++)
+                {
+                    Console.WriteLine("Paso " + i + ":");
+
+                    Console.WriteLine("Movimiento: " + camino[i].Movimiento);
+
+                    Console.Write("Estado: ");
+                    MostrarEstado(camino[i].Estado);
+
+                    Console.WriteLine();
+                }
+            }
+            else
+            {
+                Console.WriteLine("No se encontro una solucion.");
+            }
+            Console.ReadLine();
+
+        }
+    }
+}
