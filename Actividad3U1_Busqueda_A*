@@ -1,0 +1,327 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Heuristica_A_estrella
+{
+
+    class Estado
+    {   
+        public string Ciudad;
+        public int G;
+        public int H;
+        public int F;
+        public Estado Padre;
+        public Estado(string ciudad, int g, int h, Estado padre)
+        {
+            Ciudad = ciudad;
+            G = g;
+            H = h;
+            F = g + h;
+            Padre = padre;
+        }
+    }
+    internal class Program
+    {
+        static Dictionary<string, int> heuristica = new Dictionary<string, int>()
+        {
+            {"Arad", 366},
+            {"Bucharest", 0},
+            {"Craiova", 160},
+            {"Drobeta", 242},
+            {"Eforie", 161},
+            {"Fagaras", 178},
+            {"Giurgiu", 77},
+            {"Hirsova", 151},
+            {"Iasi", 226},
+            {"Lugoj", 244},
+            {"Mehadia", 241},
+            {"Neamt", 234},
+            {"Oradea", 380},
+            {"Pitesti", 98},
+            {"Rimnicu Vilcea", 193},
+            {"Sibiu", 253},
+            {"Timisoara", 329},
+            {"Urziceni", 80},
+            {"Vaslui", 199},
+            {"Zerind", 374}
+        };
+
+        static Dictionary<string, Dictionary<string, int>> mapa = new Dictionary<string, Dictionary<string, int>>()
+        {
+            {
+                "Arad",
+                new Dictionary<string, int>()
+                {
+                    {"Zerind", 75},
+                    {"Sibiu", 140},
+                    {"Timisoara", 118}
+                }
+            },
+            {
+                "Sibiu",
+                new Dictionary<string, int>()
+                {
+                    {"Arad", 140},
+                    {"Rimnicu Vilcea", 80},
+                    {"Fagaras", 99}
+                }
+            },
+            {
+                "Zerind",
+                new Dictionary<string, int>()
+                {
+                    {"Arad", 75},
+                    {"Oradea", 71}
+                }
+            },
+            {
+                "Oradea",
+                new Dictionary<string, int>()
+                {
+                    {"Zerind", 71},
+                    {"Sibiu", 151}
+                }
+            },
+            {
+                "Fagaras",
+                new Dictionary<string, int>()
+                {
+                    {"Bucharest", 211},
+                    {"Sibiu", 99}
+                }
+            },
+            {
+                "Timisoara",
+                new Dictionary<string, int>()
+                {
+                    {"Lugoj", 70},
+                    {"Arad", 118}
+                }
+            },
+            {
+                "Lugoj",
+                new Dictionary<string, int>()
+                {
+                    {"Timisoara", 70},
+                    {"Mehadia", 70}
+                }
+            },
+            {
+                "Mehadia",
+                new Dictionary<string, int>()
+                {
+                    {"Lugoj", 70},
+                    {"Drobeta", 75}
+                }
+            },
+            {
+                "Drobeta",
+                new Dictionary<string, int>()
+                {
+                    {"Mehadia", 75},
+                    {"Craiova", 120}
+                }
+            },
+            {
+                "Craiova",
+                new Dictionary<string, int>()
+                {
+                    {"Drobeta", 120},
+                    {"Rimnicu Vilcea", 146},
+                    {"Pitesti", 138}
+                }
+            },
+            {
+                "Rimnicu Vilcea",
+                new Dictionary<string, int>()
+                {
+                    {"Sibiu", 80},
+                    {"Craiova", 146},
+                    {"Pitesti", 97}
+                }
+            },
+            {
+                "Pitesti",
+                new Dictionary<string, int>()
+                {
+                    {"Rimnicu Vilcea", 97},
+                    {"Craiova", 138},
+                    {"Bucharest", 101}
+                }
+            },
+            {
+                "Bucharest",
+                new Dictionary<string, int>()
+                {
+                    {"Fagaras", 211},
+                    {"Pitesti", 101},
+                    {"Giurgiu", 90},
+                    {"Urziceni", 85}
+                }
+            },
+            {
+                "Giurgiu",
+                new Dictionary<string, int>()
+                {
+                    {"Bucharest", 90}
+                }
+            },
+            {
+                "Urziceni",
+                new Dictionary<string, int>()
+                {
+                    {"Bucharest", 85},
+                    {"Hirsova", 98},
+                    {"Vaslui", 142}
+                }
+            },
+            {
+                "Hirsova",
+                new Dictionary<string, int>()
+                {
+                    {"Urziceni", 98},
+                    {"Eforie", 86}
+                }
+            },
+            {
+                "Eforie",
+                new Dictionary<string, int>()
+                {
+                    {"Hirsova", 86}
+                }
+            },
+            {
+                "Vaslui",
+                new Dictionary<string, int>()
+                {
+                    {"Urziceni", 142},
+                    {"Iasi", 92}
+                }
+            },
+            {
+                "Iasi",
+                new Dictionary<string, int>()
+                {
+                    {"Vaslui", 92},
+                    {"Neamt", 87}
+                }
+            },
+            {
+                "Neamt",
+                new Dictionary<string, int>()
+                {
+                    {"Iasi", 87}
+
+                }
+            }
+        };
+
+        static void Main(string[] args)
+        {
+            Estado resultado = AEstrella("Arad", "Bucharest");
+
+            if (resultado != null)
+            {
+                Console.WriteLine("Camino encontrado.");
+                Console.WriteLine("Ciudad final: " + resultado.Ciudad);
+                Console.WriteLine("Distancia total: " + resultado.G + " km");
+            }
+            else
+            {
+                Console.WriteLine("No se encontró un camino.");
+            }
+
+            Console.ReadKey();
+
+        }
+
+        static Estado AEstrella(string inicio, string objetivo)
+        {
+            List<Estado> abiertos = new List<Estado>();
+            HashSet<string> cerrados = new HashSet<string>();
+
+            // Crear estado inicial
+            Estado inicial = new Estado(
+                inicio,
+                0,
+                heuristica[inicio],
+                null
+            );
+
+            abiertos.Add(inicial);
+
+            while (abiertos.Count > 0)
+            {
+                Estado actual = abiertos[0];
+
+                for (int i = 1; i < abiertos.Count; i++)
+                {
+                    if (abiertos[i].F < actual.F)
+                    {
+                        actual = abiertos[i];
+                    }
+                }
+
+                Console.WriteLine("\n================================");
+                Console.WriteLine("Ciudad investigada: " + actual.Ciudad);
+                Console.WriteLine("G = " + actual.G);
+                Console.WriteLine("H = " + actual.H);
+                Console.WriteLine("F = " + actual.F);
+                Console.WriteLine("================================");
+
+                // ¿Llegamos al destino?
+                if (actual.Ciudad == objetivo)
+                {
+                    return actual;
+                }
+                // Pasar de OPEN a CLOSED
+                abiertos.Remove(actual);
+                cerrados.Add(actual.Ciudad);
+
+                // Revisar vecinos
+                foreach (var vecino in mapa[actual.Ciudad])
+                {
+                    // Si ya fue explorado, ignorarlo
+                    if (cerrados.Contains(vecino.Key))
+                    {
+                        continue;
+                    }
+
+                    // Calcular nuevo costo G
+                    int nuevoG = actual.G + vecino.Value;
+
+                    // Buscar si ya está en OPEN
+                    Estado existente = abiertos.Find(
+                        e => e.Ciudad == vecino.Key
+                    );
+
+                    // Si no está en OPEN
+                    if (existente == null)
+                    {
+                        int nuevoH = heuristica[vecino.Key];
+
+                        Estado nuevoEstado = new Estado(
+                            vecino.Key,
+                            nuevoG,
+                            nuevoH,
+                            actual
+                        );
+
+                        abiertos.Add(nuevoEstado);
+                    }
+                    // Si ya está en OPEN
+                    else if (nuevoG < existente.G)
+                    {
+                        existente.G = nuevoG;
+                        existente.F = existente.G + existente.H;
+                        existente.Padre = actual;
+                    }
+                }
+            }
+            return null;
+        }
+    }
+}
