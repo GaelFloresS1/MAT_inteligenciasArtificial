@@ -1,0 +1,208 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace RazonamientoMonoYNoMono
+{
+    public class SistemaMonotono
+    {
+        private readonly HashSet<string> hechos = new HashSet<string>();
+        public void AgregarHecho(string hecho)
+        {
+            if (hechos.Add(hecho))
+                Console.WriteLine("  [+] Hecho agregado: \"" + hecho + "\"");
+            else
+                Console.WriteLine("  [=] El hecho \"" + hecho + "\" ya existia.");
+        }
+        public void Inferir()
+        {
+            bool huboCambios;
+            do
+            {
+                huboCambios = false;
+
+                if (hechos.Contains("latencia_alta") && hechos.Add("posible_falla"))
+                {
+                    Console.WriteLine("  [R1] latencia_alta => se deduce \"posible_falla\"");
+                    huboCambios = true;
+                }
+
+                if ((hechos.Contains("posible_falla") || hechos.Contains("servidor_caido"))
+                    && hechos.Add("notificar_admin"))
+                {
+                    Console.WriteLine("  [R2] posible_falla o servidor_caido => se deduce \"notificar_admin\"");
+                    huboCambios = true;
+                }
+            } while (huboCambios);
+        }
+
+        public void MostrarConclusiones()
+        {
+            Console.WriteLine("  Base de hechos actual: { " + string.Join(", ", hechos.OrderBy(h => h)) + " }");
+
+            var conclusiones = new List<string>();
+            if (hechos.Contains("posible_falla")) conclusiones.Add("posible_falla");
+            if (hechos.Contains("notificar_admin")) conclusiones.Add("notificar_admin");
+
+            Console.WriteLine("  Conclusiones deducidas: " +
+                (conclusiones.Count > 0 ? string.Join(", ", conclusiones) : "(ninguna)"));
+        }
+
+        public bool Contiene(string hecho)
+        {
+            return hechos.Contains(hecho);
+        }
+    }
+
+    public class SistemaNoMonotono
+    {
+        private readonly HashSet<string> hechos = new HashSet<string>();
+        private string conclusionPrevia = null;
+
+        public void AgregarHecho(string hecho)
+        {
+            if (hechos.Add(hecho))
+                Console.WriteLine("  [+] Hecho agregado: \"" + hecho + "\"");
+            else
+                Console.WriteLine("  [=] El hecho \"" + hecho + "\" ya existia.");
+        }
+
+        public string Evaluar()
+        {
+            string conclusion;
+
+            if (hechos.Contains("mantenimiento_programado") || hechos.Contains("disco_lleno"))
+            {
+                conclusion = "servidor_NO_operativo (excepcion detectada)";
+            }
+            else if (hechos.Contains("servidor_encendido"))
+            {
+
+                conclusion = "servidor_OPERATIVO";
+            }
+            else
+            {
+                conclusion = "sin_conclusion";
+            }
+
+            if (conclusionPrevia != null && conclusionPrevia != conclusion)
+            {
+                Console.WriteLine("  [!] RETRACCION: la conclusion \"" + conclusionPrevia + "\" ya no es valida.");
+            }
+
+            conclusionPrevia = conclusion;
+            return conclusion;
+        }
+
+        public void MostrarEstado(string conclusion)
+        {
+            Console.WriteLine("  Hechos actuales: { " + string.Join(", ", hechos.OrderBy(h => h)) + " }");
+            Console.WriteLine("  Conclusion: " + conclusion);
+        }
+    }
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            Console.OutputEncoding = Encoding.UTF8;
+
+            int opcion;
+            do
+            {
+                Console.Clear();
+                Console.WriteLine("==============================================");
+                Console.WriteLine("  RAZONAMIENTO MONOTONO vs NO MONOTONO");
+                Console.WriteLine("  Sistema de diagnostico de servidores");
+                Console.WriteLine("==============================================");
+                Console.WriteLine("  1. Ejecutar modulo MONOTONO");
+                Console.WriteLine("  2. Ejecutar modulo NO MONOTONO");
+                Console.WriteLine("  3. Ejecutar ambos consecutivamente (comparacion)");
+                Console.WriteLine("  0. Salir");
+                Console.Write("\nSeleccione una opcion: ");
+
+                if (!int.TryParse(Console.ReadLine(), out opcion))
+                    opcion = -1;
+
+                Console.WriteLine();
+
+                switch (opcion)
+                {
+                    case 1:
+                        EjecutarMonotono();
+                        break;
+                    case 2:
+                        EjecutarNoMonotono();
+                        break;
+                    case 3:
+                        EjecutarMonotono();
+                        Console.WriteLine();
+                        EjecutarNoMonotono();
+                        MostrarComparacion();
+                        break;
+                    case 0:
+                        Console.WriteLine("Fin del programa.");
+                        break;
+                    default:
+                        Console.WriteLine("Opcion no valida.");
+                        break;
+                }
+
+                if (opcion != 0)
+                {
+                    Console.WriteLine("\nPresione una tecla para volver al menu...");
+                    Console.ReadKey();
+                }
+            } while (opcion != 0);
+        }
+
+        static void EjecutarMonotono()
+        {
+            Console.WriteLine("------ MODULO MONOTONO ------");
+            var sistema = new SistemaMonotono();
+
+            Console.WriteLine("\nPaso 1: agregar \"latencia_alta\" e inferir");
+            sistema.AgregarHecho("latencia_alta");
+            sistema.Inferir();
+            sistema.MostrarConclusiones();
+
+            Console.WriteLine("\nPaso 2: agregar \"conexion_restablecida\" e inferir de nuevo");
+            sistema.AgregarHecho("conexion_restablecida");
+            sistema.Inferir();
+            sistema.MostrarConclusiones();
+
+            bool intactas = sistema.Contiene("posible_falla") && sistema.Contiene("notificar_admin");
+            Console.WriteLine("\n  >> Resultado: las conclusiones \"posible_falla\" y \"notificar_admin\" " +
+                (intactas ? "SE MANTIENEN INTACTAS." : "se perdieron (error)."));
+            Console.WriteLine("  >> En un sistema monotono, nueva informacion NUNCA elimina verdades deducidas.");
+        }
+
+        static void EjecutarNoMonotono()
+        {
+            Console.WriteLine("------ MODULO NO MONOTONO ------");
+            var sistema = new SistemaNoMonotono();
+
+            Console.WriteLine("\nPaso 1: agregar solo \"servidor_encendido\" y evaluar");
+            sistema.AgregarHecho("servidor_encendido");
+            string c1 = sistema.Evaluar();
+            sistema.MostrarEstado(c1);
+
+            Console.WriteLine("\nPaso 2: agregar \"mantenimiento_programado\" y reevaluar");
+            sistema.AgregarHecho("mantenimiento_programado");
+            string c2 = sistema.Evaluar();
+            sistema.MostrarEstado(c2);
+
+            Console.WriteLine("\n  >> Resultado: la conclusion cambio de \"" + c1 + "\" a \"" + c2 + "\".");
+            Console.WriteLine("  >> En un sistema no monotono, nueva informacion SI puede retractar conclusiones.");
+        }
+
+        static void MostrarComparacion()
+        {
+            Console.WriteLine("\n================ COMPARACION ================");
+            Console.WriteLine("  Monotono    : al agregar la 2da evidencia, las conclusiones previas se MANTIENEN.");
+            Console.WriteLine("  No monotono : al agregar la 2da evidencia, la conclusion previa se RETRACTA.");
+            Console.WriteLine("=============================================");
+        }
+    }
+}
