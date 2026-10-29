@@ -1,0 +1,250 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace TeoremaBalles2
+{
+        class Program
+        {
+            static void Main(string[] args)
+            {
+                Console.Title = "Teorema de Bayes - Urnas";
+
+                string[] urnas = { "A", "B", "C" };
+
+                int[] rojas = new int[3];
+                int[] negras = new int[3];
+                int[] totales = new int[3];
+
+                Console.WriteLine("====================================");
+                Console.WriteLine("   TEOREMA DE BAYES - TRES URNAS");
+                Console.WriteLine("====================================\n");
+
+                for (int i = 0; i < 3; i++)
+                {
+                    Console.WriteLine("URNA " + urnas[i]);
+
+                    rojas[i] = LeerCantidad(
+                        "Cantidad de esferas rojas: ");
+
+                    negras[i] = LeerCantidad(
+                        "Cantidad de esferas negras: ");
+
+                    totales[i] = rojas[i] + negras[i];
+
+                    if (totales[i] == 0)
+                    {
+                        Console.WriteLine(
+                            "Error: cada urna debe tener al menos una esfera.");
+
+                        Console.WriteLine("Presiona una tecla para salir...");
+                        Console.ReadKey();
+                        return;
+                    }
+
+                    Console.WriteLine(
+                        "Total de esferas en la urna: " + totales[i]);
+
+                    Console.WriteLine();
+                }
+
+                Console.WriteLine("\n--- PROBABILIDAD INICIAL DE CADA URNA ---");
+
+                for (int i = 0; i < 3; i++)
+                {
+                    double probabilidadUrna = 1.0 / 3.0;
+
+                    Console.WriteLine(
+                        "P(" + urnas[i] + ") = " +
+                        probabilidadUrna.ToString("P2"));
+                }
+
+                int opcion;
+
+                do
+                {
+                    Console.WriteLine("\n========== MENU ==========");
+                    Console.WriteLine("1. Probabilidad de obtener una esfera roja");
+                    Console.WriteLine("2. Probabilidad de obtener una esfera negra");
+                    Console.WriteLine("3. Bayes: urna de origen si la esfera es roja");
+                    Console.WriteLine("4. Bayes: urna de origen si la esfera es negra");
+                    Console.WriteLine("0. Salir");
+                    Console.Write("Selecciona una opcion: ");
+
+                    if (!int.TryParse(Console.ReadLine(), out opcion))
+                    {
+                        opcion = -1;
+                    }
+
+                    switch (opcion)
+                    {
+                        case 1:
+                            MostrarProbabilidadColor(
+                                rojas, negras, totales, true);
+                            break;
+
+                        case 2:
+                            MostrarProbabilidadColor(
+                                rojas, negras, totales, false);
+                            break;
+
+                        case 3:
+                            AplicarBayes(
+                                urnas, rojas, negras, totales, true);
+                            break;
+
+                        case 4:
+                            AplicarBayes(
+                                urnas, rojas, negras, totales, false);
+                            break;
+
+                        case 0:
+                            Console.WriteLine("Programa finalizado.");
+                            break;
+
+                        default:
+                            Console.WriteLine("Opcion no valida.");
+                            break;
+                    }
+
+                } while (opcion != 0);
+
+                Console.WriteLine("\nPresiona una tecla para cerrar...");
+                Console.ReadKey();
+            }
+
+            // Leer una cantidad entera de esferas
+            static int LeerCantidad(string mensaje)
+            {
+                int cantidad;
+
+                while (true)
+                {
+                    Console.Write(mensaje);
+
+                    if (int.TryParse(Console.ReadLine(), out cantidad)
+                        && cantidad >= 0)
+                    {
+                        return cantidad;
+                    }
+
+                    Console.WriteLine(
+                        "Introduce un numero entero igual o mayor que cero.");
+                }
+            }
+
+            static double CalcularProbabilidadColor(
+                int[] rojas,
+                int[] negras,
+                int[] totales,
+                bool esRoja)
+            {
+                double total = 0;
+
+                for (int i = 0; i < 3; i++)
+                {
+                    double probabilidadUrna = 1.0 / 3.0;
+
+                    double probabilidadColor;
+
+                    if (esRoja)
+                    {
+                        probabilidadColor =
+                            (double)rojas[i] / totales[i];
+                    }
+                    else
+                    {
+                        probabilidadColor =
+                            (double)negras[i] / totales[i];
+                    }
+
+                    total += probabilidadUrna * probabilidadColor;
+                }
+
+                return total;
+            }
+
+            static void MostrarProbabilidadColor(
+                int[] rojas,
+                int[] negras,
+                int[] totales,
+                bool esRoja)
+            {
+                double probabilidad = CalcularProbabilidadColor(
+                    rojas, negras, totales, esRoja);
+
+                string color = esRoja ? "roja" : "negra";
+
+                Console.WriteLine("\n--- PROBABILIDAD TOTAL ---");
+
+                Console.WriteLine(
+                    "P(esfera " + color + ") = " +
+                    probabilidad.ToString("P2"));
+            }
+
+            // Aplicar el teorema de Bayes
+            static void AplicarBayes(
+                string[] urnas,
+                int[] rojas,
+                int[] negras,
+                int[] totales,
+                bool esRoja)
+            {
+                string color = esRoja ? "roja" : "negra";
+
+                double probabilidadColor =
+                    CalcularProbabilidadColor(
+                        rojas, negras, totales, esRoja);
+
+                Console.WriteLine(
+                    "\n--- BAYES: ESFERA " + color.ToUpper() + " ---");
+
+                // Evitar una division entre cero
+                if (probabilidadColor == 0)
+                {
+                    Console.WriteLine(
+                        "No es posible aplicar Bayes porque no hay " +
+                        "esferas de ese color.");
+
+                    return;
+                }
+
+                for (int i = 0; i < 3; i++)
+                {
+                    // Probabilidad inicial de elegir la urna
+                    double probabilidadUrna = 1.0 / 3.0;
+
+                    // Probabilidad de obtener el color en esa urna
+                    double probabilidadColorDadaUrna;
+
+                    if (esRoja)
+                    {
+                        probabilidadColorDadaUrna =
+                            (double)rojas[i] / totales[i];
+                    }
+                    else
+                    {
+                        probabilidadColorDadaUrna =
+                            (double)negras[i] / totales[i];
+                    }
+
+                    // Numerador de Bayes
+                    double numerador =
+                        probabilidadUrna *
+                        probabilidadColorDadaUrna;
+
+                    // Probabilidad posterior
+                    double posterior =
+                        numerador / probabilidadColor;
+
+                    Console.WriteLine(
+                        "P(Urna " + urnas[i] + " | esfera " + color + ") = " +
+                        posterior.ToString("P2"));
+                }
+            }
+        }
+    
+
+}
