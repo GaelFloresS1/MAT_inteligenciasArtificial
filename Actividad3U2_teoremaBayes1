@@ -1,0 +1,233 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Teorema_de_balles
+{
+
+    using System;
+
+    namespace TeoremaBayes
+    {
+        class Program
+        {
+            static void Main(string[] args)
+            {
+                Console.Title = "Calculadora del Teorema de Bayes";
+
+                string[] maquinas = { "A", "B", "C" };
+
+                double[] produccion = new double[3];
+                double[] defectuosos = new double[3];
+
+                Console.WriteLine("==================================");
+                Console.WriteLine("   CALCULADORA DEL TEOREMA DE BAYES");
+                Console.WriteLine("==================================\n");
+
+                // Capturar los datos de cada posibilidad
+                for (int i = 0; i < 3; i++)
+                {
+                    Console.WriteLine("MAQUINA " + maquinas[i]);
+
+                    produccion[i] = LeerPorcentaje(
+                        "Porcentaje de produccion: ");
+
+                    defectuosos[i] = LeerPorcentaje(
+                        "Porcentaje de productos defectuosos: ");
+
+                    Console.WriteLine();
+                }
+
+                // Validar que la produccion sume 100 %
+                double sumaProduccion =
+                    produccion[0] + produccion[1] + produccion[2];
+
+                if (Math.Abs(sumaProduccion - 100) > 0.000001)
+                {
+                    Console.WriteLine(
+                        "Error: la produccion de A, B y C debe sumar 100 %.");
+
+                    Console.WriteLine("Presiona una tecla para salir...");
+                    Console.ReadKey();
+                    return;
+                }
+
+                // Mostrar el menu
+                int opcion;
+
+                do
+                {
+                    Console.WriteLine("\n========== MENU ==========");
+                    Console.WriteLine("1. Probabilidad de producto defectuoso");
+                    Console.WriteLine("2. Probabilidad de producto no defectuoso");
+                    Console.WriteLine("3. Aplicar Bayes a producto defectuoso");
+                    Console.WriteLine("4. Aplicar Bayes a producto no defectuoso");
+                    Console.WriteLine("0. Salir");
+                    Console.Write("Selecciona una opcion: ");
+
+                    if (!int.TryParse(Console.ReadLine(), out opcion))
+                    {
+                        opcion = -1;
+                    }
+
+                    switch (opcion)
+                    {
+                        case 1:
+                            MostrarProbabilidadTotal(
+                                produccion, defectuosos, true);
+                            break;
+
+                        case 2:
+                            MostrarProbabilidadTotal(
+                                produccion, defectuosos, false);
+                            break;
+
+                        case 3:
+                            AplicarBayes(
+                                maquinas, produccion, defectuosos, true);
+                            break;
+
+                        case 4:
+                            AplicarBayes(
+                                maquinas, produccion, defectuosos, false);
+                            break;
+
+                        case 0:
+                            Console.WriteLine("Programa finalizado.");
+                            break;
+
+                        default:
+                            Console.WriteLine("Opcion no valida.");
+                            break;
+                    }
+
+                } while (opcion != 0);
+
+                Console.WriteLine("\nPresiona una tecla para cerrar...");
+                Console.ReadKey();
+            }
+
+            // Leer porcentajes entre 0 y 100
+            static double LeerPorcentaje(string mensaje)
+            {
+                double valor;
+
+                while (true)
+                {
+                    Console.Write(mensaje);
+
+                    string entrada = Console.ReadLine();
+
+                    if (double.TryParse(entrada, out valor)
+                        && valor >= 0 && valor <= 100)
+                    {
+                        return valor;
+                    }
+
+                    Console.WriteLine(
+                        "Introduce un numero entre 0 y 100.");
+                }
+            }
+
+            // Calcular la probabilidad total de un resultado
+            static double CalcularTotal(
+                double[] produccion,
+                double[] defectuosos,
+                bool esDefectuoso)
+            {
+                double total = 0;
+
+                for (int i = 0; i < 3; i++)
+                {
+                    double probabilidadResultado;
+
+                    if (esDefectuoso)
+                    {
+                        probabilidadResultado = defectuosos[i];
+                    }
+                    else
+                    {
+                        probabilidadResultado = 100 - defectuosos[i];
+                    }
+
+                    total += produccion[i] * probabilidadResultado;
+                }
+
+                // Se divide entre 100 porque los datos son porcentajes
+                return total / 100;
+            }
+
+            static void MostrarProbabilidadTotal(
+                double[] produccion,
+                double[] defectuosos,
+                bool esDefectuoso)
+            {
+                double total = CalcularTotal(
+                    produccion, defectuosos, esDefectuoso);
+
+                string resultado = esDefectuoso
+                    ? "defectuoso"
+                    : "no defectuoso";
+
+                Console.WriteLine("\n--- PROBABILIDAD TOTAL ---");
+                Console.WriteLine(
+                    "P(" + resultado + ") = " +
+                    total.ToString("F4") + "%");
+            }
+
+            // Aplicar el teorema de Bayes
+            static void AplicarBayes(
+                string[] maquinas,
+                double[] produccion,
+                double[] defectuosos,
+                bool esDefectuoso)
+            {
+                string resultado = esDefectuoso
+                    ? "defectuoso"
+                    : "no defectuoso";
+
+                double total = CalcularTotal(
+                    produccion, defectuosos, esDefectuoso);
+
+                Console.WriteLine(
+                    "\n--- BAYES: PRODUCTO " +
+                    resultado.ToUpper() + " ---");
+
+                if (total == 0)
+                {
+                    Console.WriteLine(
+                        "No es posible calcular Bayes: " +
+                        "la probabilidad del resultado es cero.");
+                    return;
+                }
+
+                for (int i = 0; i < 3; i++)
+                {
+                    double probabilidadResultado;
+
+                    if (esDefectuoso)
+                    {
+                        probabilidadResultado = defectuosos[i];
+                    }
+                    else
+                    {
+                        probabilidadResultado = 100 - defectuosos[i];
+                    }
+
+                    // P(Maquina | Resultado)
+                    double numerador =
+                        produccion[i] * probabilidadResultado / 100;
+
+                    double posterior = numerador / total * 100;
+
+                    Console.WriteLine(
+                        "P(" + maquinas[i] + " | " + resultado + ") = " +
+                        posterior.ToString("F2") + "%");
+                }
+            }
+        }
+    }
+
+}
