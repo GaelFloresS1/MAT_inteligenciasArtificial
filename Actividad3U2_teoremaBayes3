@@ -1,0 +1,102 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace TeoremaBayes3
+{
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            Console.Title = "Clasificador de Spam - Naive Bayes";
+
+            Console.WriteLine("======================================");
+            Console.WriteLine("   CLASIFICADOR DE CORREO SPAM");
+            Console.WriteLine("          METODO BAYES");
+            Console.WriteLine("======================================");
+
+            // 1. Probabilidades iniciales (Prior)
+            double spam = 0.30;
+            double noSpam = 0.70;
+
+            // 2. Probabilidades de las palabras
+            double ganaSpam = 0.60;
+            double dineroSpam = 0.80;
+
+            double ganaNoSpam = 0.05;
+            double dineroNoSpam = 0.10;
+
+            Console.WriteLine("\nPALABRAS DETECTADAS:");
+            Console.WriteLine("- Gana");
+            Console.WriteLine("- Dinero");
+
+            // 3. Calcular probabilidades conjuntas
+            double resultadoSpam =
+                spam * ganaSpam * dineroSpam;
+
+            double resultadoNoSpam =
+                noSpam * ganaNoSpam * dineroNoSpam;
+
+            // 4. Calcular denominador
+            double total = resultadoSpam + resultadoNoSpam;
+
+            // 5. Aplicar el teorema de Bayes
+            double probabilidadSpam =
+                resultadoSpam / total;
+
+            double probabilidadNoSpam =
+                resultadoNoSpam / total;
+
+            // 6. Mostrar los resultados
+            Console.WriteLine("\n======================================");
+            Console.WriteLine("       CALCULOS DE BAYES");
+            Console.WriteLine("======================================");
+
+            Console.WriteLine("\nProbabilidades iniciales:");
+            Console.WriteLine("P(S) = " + spam);
+            Console.WriteLine("P(N) = " + noSpam);
+
+            Console.WriteLine("\nProbabilidades conjuntas:");
+
+            Console.WriteLine("P(Gana, Dinero | S) * P(S)");
+            Console.WriteLine("= " + resultadoSpam.ToString("F6"));
+
+            Console.WriteLine("\nP(Gana, Dinero | N) * P(N)");
+            Console.WriteLine("= " + resultadoNoSpam.ToString("F6"));
+
+            Console.WriteLine("\nDenominador:");
+            Console.WriteLine("= " + total.ToString("F6"));
+
+            Console.WriteLine("\n======================================");
+            Console.WriteLine("       RESULTADO FINAL");
+            Console.WriteLine("======================================");
+
+            Console.WriteLine("\nProbabilidad de Spam:");
+            Console.WriteLine((probabilidadSpam * 100)
+                .ToString("F2") + "%");
+
+            Console.WriteLine("\nProbabilidad de No Spam:");
+            Console.WriteLine((probabilidadNoSpam * 100)
+                .ToString("F2") + "%");
+
+            // 7. Determinar la clasificación
+            Console.WriteLine("\n======================================");
+
+            if (probabilidadSpam > probabilidadNoSpam)
+            {
+                Console.WriteLine("CLASIFICACION: SPAM");
+            }
+            else
+            {
+                Console.WriteLine("CLASIFICACION: NO SPAM");
+            }
+
+            Console.WriteLine("======================================");
+
+            Console.WriteLine("\nPresione una tecla para salir...");
+            Console.ReadKey();
+        }
+    }
+}
