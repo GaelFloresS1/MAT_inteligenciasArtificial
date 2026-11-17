@@ -1,0 +1,201 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace SDR_de_medicina_GFS
+{
+    // 1.Base de Hechos
+    public enum Hecho
+    {
+        // Síntomas que reporta el paciente
+        FiebreAlta,       // Temperatura >= 38.5
+        FiebreLeve,       // Temperatura >= 37.5 y < 38.5
+        SinFiebre,        // Temperatura < 37.5
+        Tos,
+        DolorMuscular,
+        Estornudos,
+        OjosLlorosos,
+        CongestionNasal,
+        FaltaDeAire,
+        Gripe,
+        Alergia,
+        Resfriado,
+        AcudirUrgencias,
+        ReposoHidratacion
+    }
+
+    public class ReglaProduccion
+    {
+        public string Nombre { get; set; }
+        public string Descripcion { get; set; }
+        public int Prioridad { get; set; }
+        public Func<HashSet<Hecho>, bool> Antecedente { get; set; }
+        public List<Hecho> ConsecuenteAdd { get; set; } = new List<Hecho>();
+        public List<Hecho> ConsecuenteRemove { get; set; } = new List<Hecho>();
+
+        public bool Evaluar(HashSet<Hecho> baseHechos) => Antecedente(baseHechos);
+    }
+    public class MotorInferencia
+    {
+        private readonly HashSet<Hecho> _baseHechos = new HashSet<Hecho>();
+        private readonly List<ReglaProduccion> _baseConocimiento = new List<ReglaProduccion>();
+        private readonly HashSet<string> _reglasDisparadas = new HashSet<string>();
+
+        public MotorInferencia(IEnumerable<Hecho> hechosIniciales)
+        {
+            foreach (var h in hechosIniciales) _baseHechos.Add(h);
+            CargarReglas();
+        }
+
+        private void CargarReglas()
+        {
+            // R1: FiebreAlta ∧ Tos ∧ DolorMuscular -> Gripe (Prioridad 90)
+            _baseConocimiento.Add(new ReglaProduccion
+            {
+                Nombre = "R1",
+                Descripcion = "fiebre alta, tos y dolor muscular => gripe",
+                Prioridad = 90,
+                Antecedente = bh => bh.Contains(Hecho.FiebreAlta)
+                                 && bh.Contains(Hecho.Tos)
+                                 && bh.Contains(Hecho.DolorMuscular),
+                ConsecuenteAdd = new List<Hecho> { Hecho.Gripe }
+            });
+
+            // R2: Estornudos ∧ OjosLlorosos ∧ SinFiebre -> Alergia (Prioridad 70)
+            _baseConocimiento.Add(new ReglaProduccion
+            {
+                Nombre = "R2",
+                Descripcion = "estornudos, ojos llorosos y sin fiebre => alergia",
+                Prioridad = 70,
+                Antecedente = bh => bh.Contains(Hecho.Estornudos)
+                                 && bh.Contains(Hecho.OjosLlorosos)
+                                 && bh.Contains(Hecho.SinFiebre),
+                ConsecuenteAdd = new List<Hecho> { Hecho.Alergia }
+            });
+
+            // R3: CongestionNasal ∧ FiebreLeve -> Resfriado (Prioridad 60)
+            _baseConocimiento.Add(new ReglaProduccion
+            {
+                Nombre = "R3",
+                Descripcion = "congestión nasal y fiebre leve => resfriado",
+                Prioridad = 60,
+                Antecedente = bh => bh.Contains(Hecho.CongestionNasal)
+                                 && bh.Contains(Hecho.FiebreLeve),
+                ConsecuenteAdd = new List<Hecho> { Hecho.Resfriado }
+            });
+
+            // R4: Gripe ∧ FaltaDeAire -> AcudirUrgencias (Prioridad 100)
+            _baseConocimiento.Add(new ReglaProduccion
+            {
+                Nombre = "R4",
+                Descripcion = "gripe y falta de aire => acudir a urgencias",
+                Prioridad = 100,
+                Antecedente = bh => bh.Contains(Hecho.Gripe)
+                                 && bh.Contains(Hecho.FaltaDeAire),
+                ConsecuenteAdd = new List<Hecho> { Hecho.AcudirUrgencias }
+            });
+
+            // R5: Resfriado -> ReposoHidratacion (Prioridad 50)
+            _baseConocimiento.Add(new ReglaProduccion
+            {
+                Nombre = "R5",
+                Descripcion = "resfriado => reposo e hidratación",
+                Prioridad = 50,
+                Antecedente = bh => bh.Contains(Hecho.Resfriado),
+                ConsecuenteAdd = new List<Hecho> { Hecho.ReposoHidratacion }
+            });
+        }
+
+        public void EjecutarCiclo()
+        {
+            Console.WriteLine($"Base de Hechos Inicial: {{ {string.Join(", ", _baseHechos)} }}\n");
+            int paso = 1;
+
+            // Cada regla se dispara a lo sumo una vez, por lo que el ciclo siempre termina.
+            while (true)
+            {
+                // Fase 1: Equiparación (Matching)
+                var conjuntoConflicto = _baseConocimiento
+                    .Where(r => !_reglasDisparadas.Contains(r.Nombre) && r.Evaluar(_baseHechos))
+                    .ToList();
+
+                if (!conjuntoConflicto.Any())
+                {
+                    Console.WriteLine("--> No hay más reglas aplicables. Punto fijo alcanzado.\n");
+                    break;
+                }
+
+                // Fase 2: Resolución de Conflictos (Selección por Prioridad)
+                var reglaAEjecutar = conjuntoConflicto.OrderByDescending(r => r.Prioridad).First();
+
+                // Fase 3: Ejecución (Actuación)
+                Console.WriteLine($"[Paso {paso++}] Disparando {reglaAEjecutar.Nombre} " +
+                                  $"(Prioridad: {reglaAEjecutar.Prioridad}): {reglaAEjecutar.Descripcion}");
+                _reglasDisparadas.Add(reglaAEjecutar.Nombre);
+
+                // Aplicar adiciones a la BH
+                foreach (var nuevoHecho in reglaAEjecutar.ConsecuenteAdd)
+                {
+                    if (_baseHechos.Add(nuevoHecho))
+                        Console.WriteLine($"   + Hecho deducido/añadido: {nuevoHecho}");
+                }
+
+                // Aplicar retracciones a la BH
+                foreach (var hechoEliminar in reglaAEjecutar.ConsecuenteRemove)
+                {
+                    if (_baseHechos.Remove(hechoEliminar))
+                        Console.WriteLine($"   - Hecho retractado/eliminado: {hechoEliminar}");
+                }
+            }
+
+            Console.WriteLine($"Base de Hechos Final: {{ {string.Join(", ", _baseHechos)} }}");
+            MostrarConclusion();
+        }
+
+        private void MostrarConclusion()
+        {
+            var diagnosticos = new[] { Hecho.Gripe, Hecho.Alergia, Hecho.Resfriado }
+                .Where(_baseHechos.Contains).ToList();
+            var recomendaciones = new[] { Hecho.AcudirUrgencias, Hecho.ReposoHidratacion }
+                .Where(_baseHechos.Contains).ToList();
+
+            Console.WriteLine("Diagnóstico: " + (diagnosticos.Any() ? string.Join(", ", diagnosticos) : "sin diagnóstico concluyente"));
+            Console.WriteLine("Recomendación: " + (recomendaciones.Any() ? string.Join(", ", recomendaciones) : "ninguna"));
+        }
+    }
+
+    internal class Program
+    {
+        private static void Main()
+        {
+            Console.WriteLine("=== CASO 1: GRIPE CON FALTA DE AIRE (R1 -> R4) ===");
+            var motor1 = new MotorInferencia(new List<Hecho>
+            {
+                Hecho.FiebreAlta, Hecho.Tos, Hecho.DolorMuscular, Hecho.FaltaDeAire
+            });
+            motor1.EjecutarCiclo();
+
+            Console.WriteLine(new string('-', 60));
+
+            // Resfriado común
+            Console.WriteLine("=== CASO 2: RESFRIADO COMÚN (R3 -> R5) ===");
+            var motor2 = new MotorInferencia(new List<Hecho>
+            {
+                Hecho.CongestionNasal, Hecho.FiebreLeve
+            });
+            motor2.EjecutarCiclo();
+
+            Console.WriteLine(new string('-', 60));
+
+            // Alergia
+            Console.WriteLine("=== CASO 3: ALERGIA (R2) ===");
+            var motor3 = new MotorInferencia(new List<Hecho>
+            {
+                Hecho.Estornudos, Hecho.OjosLlorosos, Hecho.SinFiebre
+            });
+            motor3.EjecutarCiclo();
+        }
+    }
+}
